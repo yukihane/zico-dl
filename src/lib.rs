@@ -2,10 +2,6 @@ pub fn find_dl_target(url: &str) -> String {
     url.to_string()
 }
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -18,11 +14,5 @@ mod tests {
             result,
             "https://trial.dlsite.com/doujin/RJ293000/RJ292145_trial.zip"
         )
-    }
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
     }
 }
