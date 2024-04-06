@@ -1,17 +1,22 @@
+use std::sync::OnceLock;
+
 use scraper::{Html, Selector};
 
 pub async fn find_dl_target(url: &str) -> Result<String, reqwest::Error> {
     let body = reqwest::get(url).await?.text().await?;
 
-    println!("body = {body:?}");
-
-    let trial_url = parse_product_page(&body);
+    let trial_url = find_dl_target_html(&body);
 
     Ok(trial_url)
 }
 
-fn parse_product_page(doc: &str) -> String {
-    let selector = Selector::parse(".trial_file a").unwrap();
+// https://doc.rust-lang.org/stable/std/sync/struct.OnceLock.html
+static SELECTOR: OnceLock<Selector> = OnceLock::new();
+
+/// 製品ページのhtmlをパースし、体験版ファイルのURLを取得します。
+fn find_dl_target_html(doc: &str) -> String {
+    let selector = SELECTOR.get_or_init(|| Selector::parse(".trial_file a").unwrap());
+
     let parsed = Html::parse_document(doc);
     let link = parsed
         .select(&selector)
@@ -53,10 +58,10 @@ mod tests {
     }
 
     #[test]
-    fn parse_product_page() {
+    fn find_dl_target_html() {
         let file = test_case!("dlsite/product_top.html");
         let html = fs::read_to_string(file).unwrap();
-        let result = super::parse_product_page(&html);
+        let result = super::find_dl_target_html(&html);
 
         assert_eq!(
             result,
