@@ -1,8 +1,55 @@
+use anyhow::{anyhow, Context};
 use error::ZicoDlError;
+use futures_util::stream::StreamExt;
+use pbr::ProgressBar;
 use scraper::{Html, Selector};
 use std::sync::OnceLock;
-
+use tokio::io::AsyncWriteExt;
 mod error;
+
+pub async fn download_file(url: &str, filepath: &str) -> Result<(), ZicoDlError> {
+    let client = reqwest::Client::new();
+    let conent_length = get_content_length(&client, url).await?;
+
+    let mut file = tokio::fs::File::create(filepath)
+        .await
+        .map_err(|_| ZicoDlError::Local)?;
+
+    let mut pb = ProgressBar::new(conent_length);
+    pb.set_units(pbr::Units::Bytes);
+    pb.set_width(Some(100));
+
+    let mut stream = client.get(url).send().await?.bytes_stream();
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = &chunk_result?;
+
+        pb.add(chunk.len() as u64);
+
+        file.write_all(&chunk)
+            .await
+            .map_err(|_| ZicoDlError::Local)?;
+    }
+
+    file.flush().await.map_err(|_| ZicoDlError::Local)?;
+
+    Ok(())
+}
+
+async fn get_content_length(client: &reqwest::Client, url: &str) -> Result<u64, ZicoDlError> {
+    let head_result = client.head(url).send().await?;
+    let headers = head_result.headers();
+    let content_length_header = headers
+        .get("content-length")
+        .ok_or(anyhow!("No content-length, {}", url))?;
+
+    let content_length = content_length_header
+        .to_str()
+        .context("fail to str")?
+        .parse::<u64>()
+        .context("parse error")?;
+
+    Ok(content_length)
+}
 
 pub async fn find_dl_target(url: &str) -> Result<String, ZicoDlError> {
     let body = reqwest::get(url).await?.text().await?;
@@ -47,6 +94,17 @@ mod tests {
     use std::fs;
 
     use super::*;
+
+    #[tokio::test]
+    #[ignore]
+    async fn download_file() -> anyhow::Result<()> {
+        let url = "https://trial.dlsite.com/doujin/RJ293000/RJ292145_trial.zip";
+        let filepath = "download.zip";
+
+        super::download_file(url, filepath).await?;
+
+        Ok(())
+    }
 
     #[tokio::test]
     // https://doc.rust-lang.org/book/ch11-02-running-tests.html#ignoring-some-tests-unless-specifically-requested
