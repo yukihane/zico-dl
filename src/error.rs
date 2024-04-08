@@ -6,6 +6,6 @@ pub enum ZicoDlError {
     Network(#[from] reqwest::Error),
     #[error("Unexpected content: {msg}")]
     Content { msg: String },
-    #[error("Runtime error: {msg}")]
-    Runtime { msg: String },
+    #[error(transparent)]
+    Runtime(#[from] anyhow::Error),
 }
