@@ -51,26 +51,29 @@ mod tests {
     #[tokio::test]
     // https://doc.rust-lang.org/book/ch11-02-running-tests.html#ignoring-some-tests-unless-specifically-requested
     #[ignore]
-    async fn find_dl_target_test() {
+    async fn find_dl_target_test() -> anyhow::Result<()> {
         let result =
-            find_dl_target("https://www.dlsite.com/maniax/work/=/product_id/RJ292145.html")
-                .await
-                .unwrap();
+            find_dl_target("https://www.dlsite.com/maniax/work/=/product_id/RJ292145.html").await?;
+
         assert_eq!(
             result,
             "https://trial.dlsite.com/doujin/RJ293000/RJ292145_trial.zip"
-        )
+        );
+
+        Ok(())
     }
 
     #[test]
-    fn find_dl_target_html() {
+    fn find_dl_target_html() -> anyhow::Result<()> {
         let file = test_case!("dlsite/product_top.html");
-        let html = fs::read_to_string(file).unwrap();
-        let result = super::find_dl_target_html(&html);
+        let html = fs::read_to_string(file)?;
+        let result = super::find_dl_target_html(&html)?;
 
         assert_eq!(
             result,
             "https://trial.dlsite.com/doujin/RJ293000/RJ292145_trial.zip"
-        )
+        );
+
+        Ok(())
     }
 }
