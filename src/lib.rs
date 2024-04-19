@@ -7,6 +7,10 @@ use std::sync::OnceLock;
 use tokio::io::AsyncWriteExt;
 mod error;
 
+// https://blog.foresta.me/posts/large-file-download/ を参考にした
+/// ファイルをダウンロードします。
+/// - `url` - ダウンロード対象。 ex: https://trial.dlsite.com/doujin/RJ293000/RJ292145_trial.zip
+/// - `filepath` - ダウンロード場所。
 pub async fn download_file(url: &str, filepath: &str) -> Result<(), ZicoDlError> {
     let client = reqwest::Client::new();
     let conent_length = get_content_length(&client, url).await?;
